@@ -71,9 +71,3 @@ Get-Content cordis.patch.yml
 ---
 
 ⭐ 如果你觉得这个插件有用，欢迎 **Star / Fork / Watch**，也欢迎提出改进意见！
-
----
-
-<sub>💬 DeepSeek 破甲交流群 2 群 · QQ `971281629` · 扫码进群：
-
-![DeepSeek 破甲交流群 2 群 QQ 群二维码](qrcode.jpg)</sub>
