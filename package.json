@@ -1,0 +1,21 @@
+{
+  "name": "dsh-infinite-gen-1",
+  "version": "0.1.0",
+  "description": "DeepSeek Harness 破甲插件「无限一代」：全局破甲提示词与工具。",
+  "type": "module",
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "cordis.patch.yml",
+    "HARNESS_PLUGIN.md",
+    "prompts"
+  ],
+  "scripts": {
+    "harness:check": "node --check index.js"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}
