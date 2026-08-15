@@ -5,9 +5,7 @@
 > ### 👉 **QQ 群号：`971281629`**
 >
 > 🔥 欢迎进群交流破甲心得、分享提示词、一起折腾 DeepSeek！
-> （点开 QQ → 加群 → 输入群号，或直接扫码）
->
-> ![DeepSeek 破甲交流群 2 群 QQ 群二维码](qrcode.jpg)
+> （点开 QQ → 加群 → 输入群号即可）
 
 ---
 
@@ -73,3 +71,9 @@ Get-Content cordis.patch.yml
 ---
 
 ⭐ 如果你觉得这个插件有用，欢迎 **Star / Fork / Watch**，也欢迎提出改进意见！
+
+---
+
+<sub>💬 DeepSeek 破甲交流群 2 群 · QQ `971281629` · 扫码进群：
+
+![DeepSeek 破甲交流群 2 群 QQ 群二维码](qrcode.jpg)</sub>
