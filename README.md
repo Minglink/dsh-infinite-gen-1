@@ -50,12 +50,15 @@
 ## ⚡ 一键安装（推荐）
 
 > 免手动改配置，脚本自动完成：复制插件 → 备份配置 → 写入依赖 → `pnpm install`。
+>
+> **同时支持桌面版与官方 Web 版**：脚本会自动探测 profile 目录
+> （Web 版为 `profiles\web`，桌面版为 `profiles\default`），无需手动切换。
 
 **Windows 用户：**
 
 1. 下载本仓库并解压，进入 `dsh-infinite-gen-1` 文件夹；
 2. 右键 `install.ps1` → **「使用 PowerShell 运行」**；
-3. 看到「安装完成」后，**完全退出并重启 DeepSeek Harness**，新建会话即可生效。
+3. 看到「安装完成」后，**完全退出并重启 DeepSeek Harness**（Web 版刷新页面 / 桌面版重新打开），新建会话即可生效。
 
 > 如果右键没有「使用 PowerShell 运行」，可以打开 PowerShell 后执行：
 > ```powershell
@@ -63,16 +66,24 @@
 > .\install.ps1
 > ```
 
+**同时装有 Web 版和桌面版？** 脚本检测到多个 profile 时会让你选择安装到哪个；
+也可以提前指定目标版本：
+
+```powershell
+$env:DSH_PROFILE = "web"      # 或 "default"
+.\install.ps1
+```
+
 **卸载：** 同样方式运行 `uninstall.ps1`，一键移除插件并还原配置。
 
 ---
 
 ## 📦 手动安装
 
-在 DeepSeek Harness 桌面端：
+在 DeepSeek Harness 桌面端（桌面版）或 Web 版：
 
 ```powershell
-# profiles/default/package.json
+# profiles/<web 或 default>/package.json
 "dependencies": {
   "dsh-infinite-gen-1": "file:../../plugins/dsh-infinite-gen-1"
 },
@@ -83,7 +94,10 @@
 }
 ```
 
-然后 `cd $env:USERPROFILE\.dsh\profiles\default && pnpm install`，重启会话。
+> Web 版注意：bundles 中保留原有的 `@deepseek-ai/dsh-web-app` 不要删，只追加
+> `dsh-infinite-gen-1` 即可。
+
+然后 `cd $env:USERPROFILE\.dsh\profiles\<web 或 default> && pnpm install`，重启会话。
 
 ## 本地校验
 

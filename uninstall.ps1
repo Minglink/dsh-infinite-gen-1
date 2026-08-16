@@ -36,9 +36,49 @@ function Write-Err  { param([string]$Msg) Write-Host "    [X] $Msg" -ForegroundC
 # ---------- 路径 ----------
 $dshRoot     = Join-Path $env:USERPROFILE '.dsh'
 $pluginsDir  = Join-Path $dshRoot 'plugins'
-$profileDir  = Join-Path $dshRoot 'profiles\default'
-$pkgPath     = Join-Path $profileDir 'package.json'
 $destDir     = Join-Path $pluginsDir $pluginName
+
+# ---------- 自动探测 DSH profile 目录 ----------
+# 官方 Web 版 Harness 的 profile 目录名为 web，桌面版（exe）为 default。
+function Find-ProfileDir {
+    param([string]$ProfilesRoot)
+
+    # 1) 环境变量显式指定（如 $env:DSH_PROFILE = "web"）
+    if ($env:DSH_PROFILE) {
+        $candidate = Join-Path $ProfilesRoot $env:DSH_PROFILE
+        if (Test-Path (Join-Path $candidate 'package.json')) {
+            return $candidate
+        }
+        Write-Warn "环境变量 DSH_PROFILE 指向的目录不存在：$candidate（继续自动探测）"
+    }
+
+    # 2) 按优先级探测常见目录名
+    foreach ($name in @('web', 'default')) {
+        $candidate = Join-Path $ProfilesRoot $name
+        if (Test-Path (Join-Path $candidate 'package.json')) {
+            return $candidate
+        }
+    }
+
+    # 3) 列出所有候选目录让用户选择
+    $dirs = @(Get-ChildItem -LiteralPath $ProfilesRoot -Directory -Force -ErrorAction SilentlyContinue |
+        Where-Object { Test-Path (Join-Path $_.FullName 'package.json') })
+    if ($dirs.Count -eq 1) { return $dirs[0].FullName }
+    if ($dirs.Count -gt 1) {
+        Write-Host '检测到多个 DSH profile，请选择要卸载的目标：' -ForegroundColor Yellow
+        for ($i = 0; $i -lt $dirs.Count; $i++) {
+            Write-Host "  [$($i + 1)] $($dirs[$i].Name)  ($($dirs[$i].FullName))" -ForegroundColor White
+        }
+        try {
+            $sel = Read-Host '请输入序号'
+            $idx = [int]$sel - 1
+            if ($idx -ge 0 -and $idx -lt $dirs.Count) { return $dirs[$idx].FullName }
+        } catch { }
+        Write-Err '选择无效，退出。'
+        exit 1
+    }
+    return $null
+}
 
 Write-Host "`n====================" -ForegroundColor Cyan
 Write-Host "  $pluginLabel 一键卸载" -ForegroundColor Cyan
@@ -47,11 +87,14 @@ Write-Host "====================" -ForegroundColor Cyan
 # ---------- [1] 检查 ----------
 Write-Step '检查安装状态'
 
+$profileDir = Find-ProfileDir (Join-Path $dshRoot 'profiles')
+$pkgPath    = if ($profileDir) { Join-Path $profileDir 'package.json' } else { $null }
+
 $installed = $false
 
 if (Test-Path $destDir) { $installed = $true }
 
-if (Test-Path $pkgPath) {
+if ($pkgPath -and (Test-Path $pkgPath)) {
     try {
         $pkg = Get-Content -LiteralPath $pkgPath -Raw -Encoding UTF8 | ConvertFrom-Json
         if ($pkg.dependencies.PSObject.Properties.Name -contains $pluginName) { $installed = $true }
@@ -61,10 +104,10 @@ if (Test-Path $pkgPath) {
 
 if (-not $installed) {
     Write-Warn "未检测到 $pluginLabel 的安装痕迹，无需卸载。"
-    Read-Host '按回车键退出'
+    try { Read-Host '按回车键退出' } catch { }
     exit 0
 }
-Write-Ok "检测到 $pluginLabel 已安装，开始卸载"
+Write-Ok "检测到 $pluginLabel 已安装，开始卸载（目标：$profileDir）"
 
 # ---------- [2] 备份 ----------
 Write-Step '备份 package.json'
@@ -115,8 +158,13 @@ if (Test-Path $profileDir) {
     Push-Location $profileDir
     try {
         pnpm install
-        if ($LASTEXITCODE -ne 0) { throw "pnpm install 失败，退出码 $LASTEXITCODE" }
-        Write-Ok '依赖清理完成'
+        if ($LASTEXITCODE -ne 0) {
+            Write-Warn "pnpm install 未完全成功（退出码 $LASTEXITCODE），继续完成卸载"
+        } else {
+            Write-Ok '依赖清理完成'
+        }
+    } catch {
+        Write-Warn "pnpm install 执行异常：$_（继续完成卸载）"
     } finally {
         Pop-Location
     }

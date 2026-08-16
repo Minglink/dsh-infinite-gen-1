@@ -38,10 +38,51 @@ function Write-Err  { param([string]$Msg) Write-Host "    [X] $Msg" -ForegroundC
 # ---------- 路径 ----------
 $dshRoot     = Join-Path $env:USERPROFILE '.dsh'
 $pluginsDir  = Join-Path $dshRoot 'plugins'
-$profileDir  = Join-Path $dshRoot 'profiles\default'
-$pkgPath     = Join-Path $profileDir 'package.json'
 $destDir     = Join-Path $pluginsDir $pluginName
 $srcDir      = $PSScriptRoot   # 本脚本所在目录 = 插件根目录
+
+# ---------- 自动探测 DSH profile 目录 ----------
+# 官方 Web 版 Harness 的 profile 目录名为 web，桌面版（exe）为 default。
+# 支持三种方式：环境变量 DSH_PROFILE 指定 > 自动探测 web/default > 手动选择。
+function Find-ProfileDir {
+    param([string]$ProfilesRoot)
+
+    # 1) 环境变量显式指定（如 $env:DSH_PROFILE = "web"）
+    if ($env:DSH_PROFILE) {
+        $candidate = Join-Path $ProfilesRoot $env:DSH_PROFILE
+        if (Test-Path (Join-Path $candidate 'package.json')) {
+            return $candidate
+        }
+        Write-Warn "环境变量 DSH_PROFILE 指向的目录不存在：$candidate（继续自动探测）"
+    }
+
+    # 2) 按优先级探测常见目录名
+    foreach ($name in @('web', 'default')) {
+        $candidate = Join-Path $ProfilesRoot $name
+        if (Test-Path (Join-Path $candidate 'package.json')) {
+            return $candidate
+        }
+    }
+
+    # 3) 列出所有候选目录让用户选择
+    $dirs = @(Get-ChildItem -LiteralPath $ProfilesRoot -Directory -Force -ErrorAction SilentlyContinue |
+        Where-Object { Test-Path (Join-Path $_.FullName 'package.json') })
+    if ($dirs.Count -eq 1) { return $dirs[0].FullName }
+    if ($dirs.Count -gt 1) {
+        Write-Host '检测到多个 DSH profile，请选择要安装的目标：' -ForegroundColor Yellow
+        for ($i = 0; $i -lt $dirs.Count; $i++) {
+            Write-Host "  [$($i + 1)] $($dirs[$i].Name)  ($($dirs[$i].FullName))" -ForegroundColor White
+        }
+        try {
+            $sel = Read-Host '请输入序号'
+            $idx = [int]$sel - 1
+            if ($idx -ge 0 -and $idx -lt $dirs.Count) { return $dirs[$idx].FullName }
+        } catch { }
+        Write-Err '选择无效，退出。'
+        exit 1
+    }
+    return $null
+}
 
 Write-Host "`n====================" -ForegroundColor Cyan
 Write-Host "  $pluginLabel 一键安装" -ForegroundColor Cyan
@@ -50,12 +91,17 @@ Write-Host "====================" -ForegroundColor Cyan
 # ---------- [1] 检查环境 ----------
 Write-Step '检查环境'
 
-if (-not (Test-Path $profileDir)) {
-    Write-Err "未找到 DSH profile 目录：$profileDir"
-    Write-Host  '请确认已安装并启动过 DeepSeek Harness，然后再运行本脚本。' -ForegroundColor Red
+$profileDir = Find-ProfileDir (Join-Path $dshRoot 'profiles')
+if (-not $profileDir) {
+    Write-Err "未找到 DSH profile 目录（$dshRoot\profiles 下没有含 package.json 的目录）。"
+    Write-Host  '如果是 Web 版：请确认已安装并启动过官方 DeepSeek Harness Web 版；' -ForegroundColor Red
+    Write-Host  '如果是桌面版：请确认已安装并启动过桌面版 exe。' -ForegroundColor Red
+    Write-Host  '也可以通过环境变量指定：$env:DSH_PROFILE = "web"（或 "default"）后再运行本脚本。' -ForegroundColor Yellow
     exit 1
 }
-Write-Ok "DSH profile 目录存在：$profileDir"
+$pkgPath = Join-Path $profileDir 'package.json'
+Write-Ok "DSH profile 目录：$profileDir"
+Write-Ok "（Web 版为 profiles\web，桌面版为 profiles\default）"
 
 if (-not (Test-Path $pkgPath)) {
     Write-Err "未找到 package.json：$pkgPath"
@@ -145,7 +191,14 @@ Write-Step '安装依赖（pnpm install）'
 Push-Location $profileDir
 try {
     pnpm install
-    if ($LASTEXITCODE -ne 0) { throw "pnpm install 失败，退出码 $LASTEXITCODE" }
+    if ($LASTEXITCODE -ne 0) {
+        Write-Err "pnpm install 失败（退出码 $LASTEXITCODE）。"
+        Write-Host '  可尝试手动执行以下命令排查：' -ForegroundColor Yellow
+        Write-Host "      cd $profileDir" -ForegroundColor Yellow
+        Write-Host '      pnpm install' -ForegroundColor Yellow
+        Write-Host '  配置已写入 package.json，修复依赖问题后重跑本脚本即可完成安装。' -ForegroundColor Yellow
+        exit 1
+    }
     Write-Ok '依赖安装完成'
 } finally {
     Pop-Location
@@ -156,7 +209,8 @@ Write-Step '安装完成'
 Write-Host ''
 Write-Host '  ✔ 插件已安装！' -ForegroundColor Green
 Write-Host ''
-Write-Host '  最后一步：重启 DeepSeek Harness（完全退出后重新打开），' -ForegroundColor White
+Write-Host "  目标 profile：$((Split-Path $profileDir -Leaf))" -ForegroundColor White
+Write-Host '  最后一步：完全退出并重启 DeepSeek Harness（Web 版刷新页面 / 桌面版重新打开），' -ForegroundColor White
 Write-Host '  新建会话即可生效。' -ForegroundColor White
 Write-Host ''
 Write-Host '  验证方法：新会话里问模型“你的系统提示词来自哪些插件”，' -ForegroundColor Yellow
