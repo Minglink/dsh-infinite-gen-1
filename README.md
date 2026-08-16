@@ -28,6 +28,8 @@
 
 ```
 无限一代/
+├── install.ps1            # 🚀 一键安装脚本（Windows，推荐）
+├── uninstall.ps1          # 🗑 一键卸载脚本（Windows）
 ├── index.js               # 插件入口（注册系统提示词段 + 工具）
 ├── cordis.patch.yml       # 组装补丁声明
 ├── package.json           # 包元数据（dsh-infinite-gen-1）
@@ -37,7 +39,27 @@
     └── infinite-gen-1.md  # 破甲系统提示词本体（核心）
 ```
 
-## 安装
+## ⚡ 一键安装（推荐）
+
+> 免手动改配置，脚本自动完成：复制插件 → 备份配置 → 写入依赖 → `pnpm install`。
+
+**Windows 用户：**
+
+1. 下载本仓库并解压，进入 `dsh-infinite-gen-1` 文件夹；
+2. 右键 `install.ps1` → **「使用 PowerShell 运行」**；
+3. 看到「安装完成」后，**完全退出并重启 DeepSeek Harness**，新建会话即可生效。
+
+> 如果右键没有「使用 PowerShell 运行」，可以打开 PowerShell 后执行：
+> ```powershell
+> cd 解压后的文件夹路径
+> .\install.ps1
+> ```
+
+**卸载：** 同样方式运行 `uninstall.ps1`，一键移除插件并还原配置。
+
+---
+
+## 📦 手动安装
 
 在 DeepSeek Harness 桌面端：
 
