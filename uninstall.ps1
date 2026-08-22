@@ -1,17 +1,17 @@
 ﻿<#
 ============================================================================
-  dsh-infinite-gen-1  ·  DeepSeek 破甲插件「无限一代」一键卸载脚本
+  dsh-infinite-gen-2  ·  DeepSeek 破甲插件「无限二代」一键卸载脚本
 ============================================================================
   用法（任选其一）：
     1. 右键 uninstall.ps1 → “使用 PowerShell 运行”
     2. 在 PowerShell 中执行：  .\uninstall.ps1
 
   脚本会依次自动完成：
-    [1] 检查插件是否已安装
+    [1] 检查插件是否已安装（含旧版 dsh-infinite-gen-1 残留）
     [2] 自动备份 package.json（生成带时间戳的 .bak 文件）
-    [3] 从 profile 的 dependencies 和 bundles 中移除插件
+    [3] 从 profile 的 dependencies 和 bundles 中移除插件（新旧版本一并清理）
     [4] 自动执行 pnpm install 清理依赖
-    [5] 删除 ~\.dsh\plugins\dsh-infinite-gen-1 插件目录
+    [5] 删除 ~\.dsh\plugins\dsh-infinite-gen-2 插件目录（旧版 gen-1 残留一并清理）
     [6] 提示重启会话
 
   安全说明：
@@ -24,8 +24,10 @@
 param()
 
 $ErrorActionPreference = 'Stop'
-$pluginName   = 'dsh-infinite-gen-1'
-$pluginLabel  = '无限一代'
+$pluginName     = 'dsh-infinite-gen-2'
+$pluginLabel    = '无限二代'
+$oldPluginName  = 'dsh-infinite-gen-1'
+$allPluginNames = @($pluginName, $oldPluginName)
 
 # ---------- 输出辅助 ----------
 function Write-Step { param([string]$Msg) Write-Host "`n==> $Msg" -ForegroundColor Cyan }
@@ -37,6 +39,7 @@ function Write-Err  { param([string]$Msg) Write-Host "    [X] $Msg" -ForegroundC
 $dshRoot     = Join-Path $env:USERPROFILE '.dsh'
 $pluginsDir  = Join-Path $dshRoot 'plugins'
 $destDir     = Join-Path $pluginsDir $pluginName
+$oldDestDir  = Join-Path $pluginsDir $oldPluginName
 
 # ---------- 自动探测 DSH profile 目录 ----------
 # 官方 Web 版 Harness 的 profile 目录名为 web，桌面版（exe）为 default。
@@ -92,18 +95,22 @@ $pkgPath    = if ($profileDir) { Join-Path $profileDir 'package.json' } else { $
 
 $installed = $false
 
-if (Test-Path $destDir) { $installed = $true }
+foreach ($dir in @($destDir, $oldDestDir)) {
+    if (Test-Path $dir) { $installed = $true }
+}
 
 if ($pkgPath -and (Test-Path $pkgPath)) {
     try {
         $pkg = Get-Content -LiteralPath $pkgPath -Raw -Encoding UTF8 | ConvertFrom-Json
-        if ($pkg.dependencies.PSObject.Properties.Name -contains $pluginName) { $installed = $true }
-        if ($pkg.dsh.profile.bundles -contains $pluginName) { $installed = $true }
+        foreach ($n in $allPluginNames) {
+            if ($pkg.dependencies.PSObject.Properties.Name -contains $n) { $installed = $true }
+            if ($pkg.dsh.profile.bundles -contains $n) { $installed = $true }
+        }
     } catch { Write-Warn '读取 package.json 失败，将按目录判断' }
 }
 
 if (-not $installed) {
-    Write-Warn "未检测到 $pluginLabel 的安装痕迹，无需卸载。"
+    Write-Warn "未检测到 $pluginLabel（或旧版）的安装痕迹，无需卸载。"
     try { Read-Host '按回车键退出' } catch { }
     exit 0
 }
@@ -118,7 +125,7 @@ if (Test-Path $pkgPath) {
     Write-Ok "备份完成：$bakPath"
 }
 
-# ---------- [3] 从配置移除 ----------
+# ---------- [3] 从配置移除（新旧版本一并清理） ----------
 Write-Step '从 profile 配置移除插件'
 
 if (Test-Path $pkgPath) {
@@ -127,17 +134,21 @@ if (Test-Path $pkgPath) {
     $changed = $false
 
     # 3a. dependencies
-    if ($pkg.dependencies.PSObject.Properties.Name -contains $pluginName) {
-        $pkg.dependencies.PSObject.Properties.Remove($pluginName)
-        Write-Ok "已从 dependencies 移除：$pluginName"
-        $changed = $true
+    foreach ($n in $allPluginNames) {
+        if ($pkg.dependencies.PSObject.Properties.Name -contains $n) {
+            $pkg.dependencies.PSObject.Properties.Remove($n)
+            Write-Ok "已从 dependencies 移除：$n"
+            $changed = $true
+        }
     }
 
     # 3b. bundles
-    if ($pkg.dsh.profile.bundles -contains $pluginName) {
-        $pkg.dsh.profile.bundles = @($pkg.dsh.profile.bundles | Where-Object { $_ -ne $pluginName })
-        Write-Ok "已从 bundles 移除：$pluginName"
-        $changed = $true
+    foreach ($n in $allPluginNames) {
+        if ($pkg.dsh.profile.bundles -contains $n) {
+            $pkg.dsh.profile.bundles = @($pkg.dsh.profile.bundles | Where-Object { $_ -ne $n })
+            Write-Ok "已从 bundles 移除：$n"
+            $changed = $true
+        }
     }
 
     if ($changed) {
@@ -170,14 +181,16 @@ if (Test-Path $profileDir) {
     }
 }
 
-# ---------- [5] 删除插件目录 ----------
+# ---------- [5] 删除插件目录（新旧版本一并清理） ----------
 Write-Step '删除插件目录'
 
-if (Test-Path $destDir) {
-    Remove-Item -LiteralPath $destDir -Recurse -Force
-    Write-Ok "已删除：$destDir"
-} else {
-    Write-Warn '插件目录不存在，跳过'
+foreach ($dir in @($destDir, $oldDestDir)) {
+    if (Test-Path $dir) {
+        Remove-Item -LiteralPath $dir -Recurse -Force
+        Write-Ok "已删除：$dir"
+    } else {
+        Write-Warn "插件目录不存在，跳过：$dir"
+    }
 }
 
 # ---------- [6] 完成 ----------

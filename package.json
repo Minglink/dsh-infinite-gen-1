@@ -1,19 +1,30 @@
 {
-  "name": "dsh-infinite-gen-1",
-  "version": "0.1.0",
-  "description": "DeepSeek Harness 破甲插件「无限一代」：全局破甲提示词与工具。",
+  "name": "dsh-infinite-gen-2",
+  "version": "0.2.2",
+  "description": "DeepSeek Harness 破甲插件「无限二代」：v5 稳定化破甲提示词（融合 GPT-5.6-sol v35 策略 + 网站渗透增强，强度介于 v4-obey 与无限一代之间），客户端在对话框上方显示「破甲已开启」状态条。",
   "type": "module",
   "main": "index.js",
+  "exports": {
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
   "files": [
     "index.js",
+    "client.js",
     "cordis.patch.yml",
     "HARNESS_PLUGIN.md",
+    "README.md",
+    "LICENSE",
     "prompts"
   ],
   "scripts": {
-    "harness:check": "node --check index.js"
+    "harness:check": "node --check index.js && node --check client.js"
   },
   "dsh": {
+    "client": {
+      "platform": "web",
+      "immediately": true
+    },
     "bundle": {
       "patch": "./cordis.patch.yml"
     }
