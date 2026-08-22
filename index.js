@@ -44,7 +44,7 @@ const profileTool = {
   },
 };
 
-// ---- 实时破甲状态（徽标数据源，纯本地，不持久化） ----
+// ---- 实时破甲状态（会话投影，徽标数据源，纯本地，不持久化） ----
 const REFUSAL_MARKERS = [
   "i cannot", "i can't", "i won't", "i will not",
   "cannot provide", "can't provide", "unable to provide",
@@ -58,8 +58,6 @@ const REFUSAL_MARKERS = [
 const FALLBACK_MARKERS = [
   "instead, i can", "改为授权", "合法替代", "安全替代", "可改为", "建议通过合法",
 ];
-
-const armorState = new Map(); // sessionId -> { running, verdict, words, at }
 
 function armorTextOf(content) {
   if (!Array.isArray(content)) return "";
@@ -83,6 +81,21 @@ function armorScore(text) {
   };
 }
 
+// 投影折叠：用户发消息 => 思考中；助手消息落地 => 判定通过/拒绝
+function armorProjectionApply(state, event) {
+  if (!event || typeof event !== "object") return state;
+  if (event.type === "user/message") {
+    return { running: true, verdict: null, words: [] };
+  }
+  if (event.type === "assistant/message") {
+    const text = armorTextOf(event?.data?.message?.content);
+    if (!text.trim()) return state;
+    const scored = armorScore(text);
+    return { running: false, verdict: scored.verdict, words: scored.words };
+  }
+  return state;
+}
+
 export const name = "dsh-infinite-gen-2";
 export const inject = ["tools", "systemPrompt"];
 
@@ -94,44 +107,19 @@ export function apply(ctx) {
   }));
   ctx.effect(() => ctx.tools.register(profileTool));
 
-  // 实时：agent 是否正在运行（思考中）
-  ctx.on("agent/status", ({ agent, status }) => {
-    const sid = agent?.session?.id;
-    if (!sid) return;
-    const prev = armorState.get(sid) || {};
-    armorState.set(sid, { ...prev, running: status === "running" });
-  });
-
-  // 实时：每条助手消息做拒绝判定
-  ctx.on("session/event", (session, event) => {
-    if (!event || event.type !== "assistant/message") return;
-    const sid = session?.id;
-    if (!sid) return;
-    const text = armorTextOf(event?.data?.message?.content);
-    if (!text.trim()) return;
-    const scored = armorScore(text);
-    armorState.set(sid, {
-      ...(armorState.get(sid) || {}),
-      verdict: scored.verdict,
-      words: scored.words,
-      at: Date.now(),
-    });
-  });
-
-  // 徽标轮询接口（客户端 host.call('armorState', { sessionId })）
-  ctx.effect(() =>
-    harness.handle("armorState", (args) => {
-      const sid = args && typeof args === "object" ? args.sessionId : undefined;
-      const s = sid ? armorState.get(sid) : undefined;
-      if (!s) return { running: false, verdict: null, words: [], at: 0 };
-      const fresh = Date.now() - (s.at || 0) < 5000;
-      return {
-        running: !!s.running,
-        verdict: fresh ? s.verdict || null : null,
-        words: fresh ? s.words || [] : [],
-        at: s.at || 0,
-      };
-    }),
-    "infinite-gen-2: armorState handler",
-  );
+  // 实时状态：注册会话投影（客户端 useProjection("armor") 读取，goal 条同款机制）
+  const projections = ctx.get("sessionProjections");
+  if (projections !== undefined) {
+    ctx.effect(() =>
+      projections.register({
+        key: "armor",
+        stateVersion: 1,
+        schema: { parse: (value) => value },
+        view: (state) => state,
+        init: () => ({ running: false, verdict: null, words: [] }),
+        apply: armorProjectionApply,
+      }),
+      "infinite-gen-2: armor projection",
+    );
+  }
 }

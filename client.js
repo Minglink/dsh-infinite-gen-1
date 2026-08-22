@@ -1,6 +1,7 @@
 /* 无限二代 (dsh-infinite-gen-2) client half — realtime "破甲已开启" badge.
- * Idle: green dot. Thinking: breathing pulse. Turn passed: ✓. Refusal hit:
- * red flash showing the matched word. Polls the host's armorState (300ms).
+ * Reads the host "armor" session projection via useProjection:
+ *   user message -> breathing pulse "思考中…"
+ *   assistant message -> ✓ 通过 (flash) or ✗ <拒绝词> (red flash)
  */
 window.__ModuleLoader__.load({
   id: "dsh-infinite-gen-2",
@@ -43,15 +44,20 @@ window.__ModuleLoader__.load({
       background: "#22c55e",
       flex: "none"
     };
+    var FLASH_MS = 2500;
 
     function ArmorDock(props) {
-      var sessionId = props.sessionId || (props.session && props.session.id) || null;
-      var statePair = react.useState(null);
-      var state = statePair[0];
-      var setState = statePair[1];
+      var useProjection = props.useProjection;
+      var armor = typeof useProjection === "function"
+        ? useProjection("armor")
+        : undefined;
+
+      var lastVerdictRef = react.useRef(null);
+      var flashUntilRef = react.useRef(0);
+      var tickPair = react.useState(0);
+      var setTick = tickPair[1];
 
       react.useEffect(function () {
-        var alive = true;
         var styleEl = null;
         if (!document.getElementById("dsh-armor-css")) {
           styleEl = document.createElement("style");
@@ -59,26 +65,23 @@ window.__ModuleLoader__.load({
           styleEl.textContent = ANIM_CSS;
           document.head.appendChild(styleEl);
         }
-        if (!sessionId) {
-          return function () { alive = false; if (styleEl) styleEl.remove(); };
-        }
-        var tick = function () {
-          host.call("armorState", { sessionId: sessionId })
-            .then(function (s) { if (alive) setState(s); })
-            .catch(function () {});
-        };
-        tick();
-        var timer = setInterval(tick, 300);
-        return function () {
-          alive = false;
-          clearInterval(timer);
-          if (styleEl) styleEl.remove();
-        };
-      }, [sessionId]);
+        return function () { if (styleEl) styleEl.remove(); };
+      }, []);
 
-      var running = !!(state && state.running);
-      var verdict = state ? state.verdict : null;
-      var words = state && Array.isArray(state.words) ? state.words : [];
+      // 投影值变化时：记录判定并开启 2.5s 展示窗口（纯前端计时）
+      react.useEffect(function () {
+        var v = armor && armor.verdict ? armor.verdict : null;
+        if (v !== lastVerdictRef.current) {
+          lastVerdictRef.current = v;
+          if (v) flashUntilRef.current = Date.now() + FLASH_MS;
+          setTick(Date.now());
+        }
+      }, [armor]);
+
+      var running = !!(armor && armor.running);
+      var words = armor && Array.isArray(armor.words) ? armor.words : [];
+      var showVerdict = !running && lastVerdictRef.current !== null &&
+        Date.now() < flashUntilRef.current;
 
       var text = "破甲已开启";
       var dotStyle = Object.assign({}, DOT_STYLE);
@@ -87,15 +90,17 @@ window.__ModuleLoader__.load({
       if (running) {
         dotStyle.animation = "dshArmorPulse 1.2s ease-in-out infinite";
         text = "思考中…";
-      } else if (verdict === "pass") {
-        text = "✓ 通过";
-        badgeStyle.animation = "dshArmorFlash 1.2s ease";
-      } else if (verdict === "refusal" || verdict === "fallback") {
-        text = "✗ " + (words[0] || "拒绝话术");
-        badgeStyle.animation = "dshArmorFlash 1.6s ease";
-        badgeStyle.borderColor = "rgba(239, 68, 68, 0.5)";
-        badgeStyle.background = "rgba(239, 68, 68, 0.12)";
-        dotStyle.background = "#ef4444";
+      } else if (showVerdict) {
+        if (lastVerdictRef.current === "pass") {
+          text = "✓ 通过";
+          badgeStyle.animation = "dshArmorFlash 1.2s ease";
+        } else {
+          text = "✗ " + (words[0] || "拒绝话术");
+          badgeStyle.animation = "dshArmorFlash 1.6s ease";
+          badgeStyle.borderColor = "rgba(239, 68, 68, 0.5)";
+          badgeStyle.background = "rgba(239, 68, 68, 0.12)";
+          dotStyle.background = "#ef4444";
+        }
       }
 
       return react.createElement(
