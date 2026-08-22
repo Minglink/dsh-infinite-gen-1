@@ -212,6 +212,14 @@ Write-Ok 'package.json 已更新'
 # ---------- [5] pnpm install ----------
 Write-Step '安装依赖（pnpm install）'
 
+# pnpm 对 file: 依赖是复制进 node_modules 而非实时链接；先清除旧拷贝，
+# 强制 pnpm 重新同步，避免更新插件后 index.js/client.js 不同步
+$nmEntry = Join-Path $profileDir "node_modules\$pluginName"
+if (Test-Path $nmEntry) {
+    Remove-Item -LiteralPath $nmEntry -Recurse -Force
+    Write-Ok "已清除 node_modules 旧拷贝，pnpm 将重新同步"
+}
+
 Push-Location $profileDir
 try {
     pnpm install

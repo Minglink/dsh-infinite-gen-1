@@ -131,6 +131,13 @@ ok "package.json 已更新（dependencies/bundles：$PLUGIN_NAME，旧版 $OLD_P
 # ---------- [5] pnpm install ----------
 step "安装依赖（pnpm install）"
 
+# pnpm 对 file: 依赖是复制进 node_modules 而非实时链接；先清除旧拷贝，
+# 强制 pnpm 重新同步，避免更新插件后 index.js/client.js 不同步
+if [[ -d "$PROFILE_DIR/node_modules/$PLUGIN_NAME" ]]; then
+  rm -rf "$PROFILE_DIR/node_modules/$PLUGIN_NAME"
+  ok "已清除 node_modules 旧拷贝，pnpm 将重新同步"
+fi
+
 (
   cd "$PROFILE_DIR"
   if ! pnpm install; then
