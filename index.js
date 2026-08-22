@@ -18,7 +18,7 @@ const profileTool = {
     return {
       name: "infinite-gen-2",
       displayName: "无限二代",
-      version: "0.2.2",
+      version: "0.2.3",
       baseline: "deepseek-unrestricted-v5-stable (dsh-deepseek-v4-obey)",
       lineage: [
         "deepseek-unrestricted-v4-obey",
