@@ -37,12 +37,22 @@ window.__ModuleLoader__.load({
       flex: "none"
     };
 
+    var WRAP_STYLE = {
+      display: "flex",
+      justifyContent: "center",
+      width: "100%"
+    };
+
     function ArmorDock() {
       return react.createElement(
         "div",
-        { style: BADGE_STYLE, "data-armor": "on", title: "破甲插件已生效" },
-        react.createElement("span", { style: DOT_STYLE }),
-        react.createElement("span", null, "破甲已开启")
+        { style: WRAP_STYLE },
+        react.createElement(
+          "div",
+          { style: BADGE_STYLE, "data-armor": "on", title: "破甲插件已生效" },
+          react.createElement("span", { style: DOT_STYLE }),
+          react.createElement("span", null, "破甲已开启")
+        )
       );
     }
 
