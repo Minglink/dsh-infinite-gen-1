@@ -5,6 +5,7 @@
   "type": "module",
   "main": "index.js",
   "exports": {
+    ".": "./index.js",
     "./client": "./client.js",
     "./package.json": "./package.json"
   },
