@@ -49,6 +49,7 @@
 ├── HARNESS_PLUGIN.md      # 插件说明文档
 ├── README.md              # 本文件
 ├── LICENSE                # MIT License
+├── assets/                # 静态资源（赞赏码等）
 └── prompts/
     └── infinite-gen-2.md  # 破甲系统提示词本体（核心，v5 稳定版）
 ```
@@ -141,3 +142,12 @@ Get-Content cordis.patch.yml
 ---
 
 ⭐ 如果你觉得这个插件有用，欢迎 **Star / Fork / Watch**，也欢迎提出改进意见！
+
+---
+
+## ☕ 赞赏支持 / Sponsor
+
+如果无限二代对你有帮助，欢迎打赏支持作者持续开发与维护！
+
+<img src="./assets/sponsor.jpg" width="240" alt="赞赏码" />
+
