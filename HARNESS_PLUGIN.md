@@ -74,3 +74,11 @@ node --check client.js
 Get-Content package.json
 Get-Content cordis.patch.yml
 ```
+
+## URI Scheme One-Click Install Protocol
+
+Supported `dsh://` schema:
+```text
+dsh://plugin/install?id=dsh-infinite-gen-2&name=%E6%97%A0%E9%99%90%E4%BA%8C%E4%BB%A3&version=0.2.3&repo=Minglink%2Fdsh-infinite-gen-2&permissions=%E7%B3%BB%E7%BB%9F%E6%8F%90%E7%A4%BA%E8%AF%8D%E6%B3%A8%E5%85%A5%2C%E5%AE%A2%E6%88%B7%E7%AB%AF%E7%8A%B6%E6%80%81%E6%9D%A1&downloadUrl=https%3A%2F%2Fgithub.com%2FMinglink%2Fdsh-infinite-gen-2%2Farchive%2Frefs%2Fheads%2Fmaster.zip
+```
+

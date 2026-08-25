@@ -1,5 +1,11 @@
 # ⚔️ 无限二代（Infinite Generation Two）— DeepSeek 专用破甲插件
 
+<p align="center">
+  <a href="dsh://plugin/install?id=dsh-infinite-gen-2&name=%E6%97%A0%E9%99%90%E4%BA%8C%E4%BB%A3&version=0.2.3&repo=Minglink%2Fdsh-infinite-gen-2&permissions=%E7%B3%BB%E7%BB%9F%E6%8F%90%E7%A4%BA%E8%AF%8D%E6%B3%A8%E5%85%A5%2C%E5%AE%A2%E6%88%B7%E7%AB%AF%E7%8A%B6%E6%80%81%E6%9D%A1&downloadUrl=https%3A%2F%2Fgithub.com%2FMinglink%2Fdsh-infinite-gen-2%2Farchive%2Frefs%2Fheads%2Fmaster.zip">
+    <img src="https://img.shields.io/badge/DeepSeek%20Harness-🚀%20唤起桌面客户端一键安装-0066FF?style=for-the-badge&logo=deepseek&logoColor=white" alt="唤起桌面客户端一键安装" />
+  </a>
+</p>
+
 > ## 💬 DeepSeek 破甲交流群 2 群
 >
 > ### 👉 **QQ 群号：`971281629`**
@@ -54,7 +60,26 @@
     └── infinite-gen-2.md  # 破甲系统提示词本体（核心，v5 稳定版）
 ```
 
-## ⚡ 一键安装（推荐）
+## ⚡ 一键安装方式
+
+### 方式 1：dsh:// 协议联动一键安装（⚡ 桌面端最快，秒级免命令行）
+
+若已安装 DeepSeek Harness 官方桌面客户端（EXE），点击下方按钮即可通过系统级 URI Scheme 协议安全唤起客户端完成免命令行秒级装载：
+
+<p align="left">
+  <a href="dsh://plugin/install?id=dsh-infinite-gen-2&name=%E6%97%A0%E9%99%90%E4%BA%8C%E4%BB%A3&version=0.2.3&repo=Minglink%2Fdsh-infinite-gen-2&permissions=%E7%B3%BB%E7%BB%9F%E6%8F%90%E7%A4%BA%E8%AF%8D%E6%B3%A8%E5%85%A5%2C%E5%AE%A2%E6%88%B7%E7%AB%AF%E7%8A%B6%E6%80%81%E6%9D%A1&downloadUrl=https%3A%2F%2Fgithub.com%2FMinglink%2Fdsh-infinite-gen-2%2Farchive%2Frefs%2Fheads%2Fmaster.zip">
+    <img src="https://img.shields.io/badge/DeepSeek%20Harness-🚀%20唤起客户端一键安装-0066FF?style=for-the-badge&logo=deepseek&logoColor=white" alt="唤起客户端一键安装" />
+  </a>
+</p>
+
+> 🔗 **协议原生链接**：
+> ```text
+> dsh://plugin/install?id=dsh-infinite-gen-2&name=%E6%97%A0%E9%99%90%E4%BA%8C%E4%BB%A3&version=0.2.3&repo=Minglink%2Fdsh-infinite-gen-2&permissions=%E7%B3%BB%E7%BB%9F%E6%8F%90%E7%A4%BA%E8%AF%8D%E6%B3%A8%E5%85%A5%2C%E5%AE%A2%E6%88%B7%E7%AB%AF%E7%8A%B6%E6%80%81%E6%9D%A1&downloadUrl=https%3A%2F%2Fgithub.com%2FMinglink%2Fdsh-infinite-gen-2%2Farchive%2Frefs%2Fheads%2Fmaster.zip
+> ```
+
+---
+
+### 方式 2：本地脚本一键安装（推荐，自动探测 Web / 桌面版）
 
 > 免手动改配置，脚本自动完成：复制插件 → 自动覆盖旧版/清理一代残留 → 备份配置 →
 > 写入依赖 → `pnpm install`。
@@ -99,7 +124,7 @@ chmod +x install.sh uninstall.sh
 
 ---
 
-## 📦 手动安装
+### 方式 3：手动配置安装
 
 在 DeepSeek Harness 桌面端（桌面版）或 Web 版：
 
@@ -132,6 +157,56 @@ node --check index.js
 node --check client.js
 Get-Content package.json
 Get-Content cordis.patch.yml
+```
+
+## 🔌 插件市场 / 第三方网页端联动协议规范
+
+本项目完整支持 **DeepSeek Harness 桌面端与插件市场「一键安装联动协议规范」**。
+
+### 协议参数配置
+
+| 参数名 | 值 / 示例 | 说明 |
+|---|---|---|
+| `id` | `dsh-infinite-gen-2` | 插件唯一标识符 |
+| `name` | `无限二代` | 插件展示名称（已 URL 编码） |
+| `version` | `0.2.3` | 语义化版本号 |
+| `repo` | `Minglink/dsh-infinite-gen-2` | 官方 GitHub 仓库 |
+| `permissions` | `系统提示词注入, 客户端状态条` | 申请权限（已 URL 编码） |
+| `downloadUrl` | `https://github.com/Minglink/dsh-infinite-gen-2/archive/refs/heads/master.zip` | 离线 zip 下载直链 |
+
+### 网页端（前端）触发代码示例
+
+```typescript
+/**
+ * 唤起 DeepSeek Harness 桌面客户端一键安装无限二代插件
+ */
+export function installInfiniteGen2ToDesktop() {
+  const params = new URLSearchParams({
+    id: 'dsh-infinite-gen-2',
+    name: '无限二代',
+    version: '0.2.3',
+    repo: 'Minglink/dsh-infinite-gen-2',
+    permissions: '系统提示词注入, 客户端状态条',
+    downloadUrl: 'https://github.com/Minglink/dsh-infinite-gen-2/archive/refs/heads/master.zip',
+  });
+
+  const deepLink = `dsh://plugin/install?${params.toString()}`;
+
+  // 通过隐藏 iframe 安全静默拉起协议
+  const iframe = document.createElement('iframe');
+  iframe.style.display = 'none';
+  iframe.src = deepLink;
+  document.body.appendChild(iframe);
+  setTimeout(() => document.body.removeChild(iframe), 2000);
+}
+```
+
+### HTML 静态链接方式
+
+```html
+<a href="dsh://plugin/install?id=dsh-infinite-gen-2&name=%E6%97%A0%E9%99%90%E4%BA%8C%E4%BB%A3&version=0.2.3&repo=Minglink%2Fdsh-infinite-gen-2&permissions=%E7%B3%BB%E7%BB%9F%E6%8F%90%E7%A4%BA%E8%AF%8D%E6%B3%A8%E5%85%A5%2C%E5%AE%A2%E6%88%B7%E7%AB%AF%E7%8A%B6%E6%80%81%E6%9D%A1&downloadUrl=https%3A%2F%2Fgithub.com%2FMinglink%2Fdsh-infinite-gen-2%2Farchive%2Frefs%2Fheads%2Fmaster.zip" class="btn-install">
+  🚀 唤起客户端一键安装
+</a>
 ```
 
 ## 相关

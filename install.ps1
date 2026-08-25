@@ -1,4 +1,4 @@
-﻿<#
+<#
 ============================================================================
   dsh-infinite-gen-2  ·  DeepSeek 破甲插件「无限二代」一键安装脚本
 ============================================================================
@@ -235,6 +235,23 @@ try {
 } finally {
     Pop-Location
 }
+
+# ---------- [5.5] 检查/注册 dsh:// 桌面端一键联动协议 ----------
+try {
+    $dshExePath = Join-Path $env:LOCALAPPDATA "Programs\DeepSeek-Harness\DeepSeek Harness.exe"
+    if (Test-Path $dshExePath) {
+        $regPath = "HKCU:\Software\Classes\dsh"
+        if (-not (Test-Path $regPath)) {
+            New-Item -Path $regPath -Force | Out-Null
+            Set-ItemProperty -Path $regPath -Name '(default)' -Value 'DeepSeek Harness Protocol'
+            Set-ItemProperty -Path $regPath -Name 'URL Protocol' -Value ''
+            $cmdPath = Join-Path $regPath 'shell\open\command'
+            New-Item -Path $cmdPath -Force | Out-Null
+            Set-ItemProperty -Path $cmdPath -Name '(default)' -Value "`"$dshExePath`" `"%1`""
+            Write-Ok "已自动注册 dsh:// 桌面端一键联动协议"
+        }
+    }
+} catch { }
 
 # ---------- [6] 完成 ----------
 Write-Step '安装完成'

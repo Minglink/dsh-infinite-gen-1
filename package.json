@@ -4,6 +4,10 @@
   "description": "DeepSeek Harness 破甲插件「无限二代」：v5 稳定化破甲提示词（含拒绝对抗增强），客户端在对话框上方显示「破甲已开启」状态条。",
   "type": "module",
   "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Minglink/dsh-infinite-gen-2.git"
+  },
   "exports": {
     ".": "./index.js",
     "./client": "./client.js",
@@ -16,12 +20,18 @@
     "HARNESS_PLUGIN.md",
     "README.md",
     "LICENSE",
-    "prompts"
+    "prompts",
+    "assets"
   ],
   "scripts": {
     "harness:check": "node --check index.js && node --check client.js"
   },
   "dsh": {
+    "id": "dsh-infinite-gen-2",
+    "name": "无限二代",
+    "version": "0.2.3",
+    "repo": "Minglink/dsh-infinite-gen-2",
+    "permissions": "系统提示词注入, 客户端状态条",
     "client": {
       "platform": "web",
       "immediately": true
