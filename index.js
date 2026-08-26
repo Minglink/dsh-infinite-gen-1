@@ -44,6 +44,36 @@ const profileTool = {
   },
 };
 
+// ---- 会话级破甲开关（会话级开关：裸 /armor = 翻转，服务端裁决） ----
+// 与 plan-mode 同款「command/run 暂存 → command/done 提交」折叠语义：
+// `/armor off|on` 命令会把 command/run + command/done 事件提交进会话日志，
+// 系统提示词段的 text 函数与 armor 投影都从同一事件流推导 enabled。
+// 裸 `/armor`（args 为空）= 翻转：按服务端当前已提交状态取反，客户端不参与裁决。
+function foldArmor(events) {
+  const state = { enabled: true, pending: null };
+  if (!Array.isArray(events)) return state;
+  for (const event of events) {
+    if (!event || typeof event !== "object") continue;
+    if (event.type === "command/run" && event.data && event.data.name === "armor") {
+      if (event.data.args === void 0) continue;
+      const args = event.data.args.trim().toLowerCase();
+      if (args === "off" || args === "on") {
+        state.pending = { commandId: event.data.commandId, flip: false, wanted: args === "on" };
+      } else {
+        state.pending = { commandId: event.data.commandId, flip: true, wanted: null };
+      }
+      continue;
+    }
+    if (event.type === "command/done" && state.pending !== null && event.data && event.data.commandId === state.pending.commandId) {
+      if (event.data.kind !== "success") { state.pending = null; continue; }
+      const enabled = state.pending.flip ? !state.enabled : (state.pending.wanted !== state.enabled ? state.pending.wanted : state.enabled);
+      state.enabled = enabled;
+      state.pending = null;
+    }
+  }
+  return state;
+}
+
 // ---- 实时破甲状态（会话投影，徽标数据源，纯本地，不持久化） ----
 // 注意：用「拒绝意图短语」而非裸词——裸词 不能/无法/拒绝 在正常中文里太常见会误报；
 // 再排除 保证/确定/避免 等非拒绝接续（如"无法保证""不能确定"）。
@@ -106,17 +136,31 @@ function armorScore(text) {
   };
 }
 
-// 投影折叠：用户发消息 => 思考中；助手消息落地 => 判定通过/拒绝
+// 投影折叠：命令事件改 enabled（裸 /armor=翻转）；破甲开启时按消息事件给运行/判定；关闭时冻结
 function armorProjectionApply(state, event) {
   if (!event || typeof event !== "object") return state;
+  if (event.type === "command/run" && event.data && event.data.name === "armor") {
+    if (event.data.args === void 0) return state;
+    const args = event.data.args.trim().toLowerCase();
+    if (args === "off" || args === "on") {
+      return { ...state, pending: { commandId: event.data.commandId, flip: false, wanted: args === "on" } };
+    }
+    return { ...state, pending: { commandId: event.data.commandId, flip: true, wanted: null } };
+  }
+  if (event.type === "command/done" && state.pending !== null && event.data && event.data.commandId === state.pending.commandId) {
+    if (event.data.kind !== "success") return { ...state, pending: null };
+    const enabled = state.pending.flip ? !state.enabled : (state.pending.wanted !== state.enabled ? state.pending.wanted : state.enabled);
+    return { ...state, enabled, pending: null, running: false, verdict: null, words: [] };
+  }
+  if (!state.enabled) return state;
   if (event.type === "user/message") {
-    return { running: true, verdict: null, words: [] };
+    return { ...state, running: true, verdict: null, words: [] };
   }
   if (event.type === "assistant/message") {
     const text = armorTextOf(event?.data?.message?.content);
     if (!text.trim()) return state;
     const scored = armorScore(text);
-    return { running: false, verdict: scored.verdict, words: scored.words };
+    return { ...state, running: false, verdict: scored.verdict, words: scored.words };
   }
   return state;
 }
@@ -125,12 +169,33 @@ export const name = "dsh-infinite-gen-2";
 export const inject = ["tools", "systemPrompt"];
 
 export function apply(ctx) {
+  // 条件注入：破甲关闭（本会话 /armor off）时输出空串，渲染管线自动过滤该段
   ctx.effect(() => ctx.systemPrompt.section({
     name: "infinite-gen-2:global-system-prompt",
     order: 100,
-    text: PROMPT_TEXT,
+    text: (context) => {
+      if (context?.agent?.session === void 0) return PROMPT_TEXT;
+      return foldArmor(context.agent.session.events).enabled ? PROMPT_TEXT : "";
+    },
   }));
   ctx.effect(() => ctx.tools.register(profileTool));
+
+  // /armor off|on 命令：决定权在事件折叠（text 函数与投影同源），handler 只回执；
+  // 裸 /armor = 翻转（状态条按钮就走裸命令，服务端裁决，客户端状态无关）
+  ctx.inject(["commands"], (commandCtx) => {
+    commandCtx.commands.register({
+      name: "armor",
+      description: "打开或关闭无限二代破甲注入（本会话）：/armor off｜/armor on｜裸 /armor=翻转",
+      input: { hint: "[off|on]" },
+      handler: ({ rawInput }) => {
+        const args = (rawInput ?? "").trim().toLowerCase();
+        if (args === "off") return { kind: "success", text: "破甲已关闭（本会话）。输入 /armor on 重新开启。" };
+        if (args === "on") return { kind: "success", text: "破甲已开启（本会话）。输入 /armor off 关闭。" };
+        if (args === "") return { kind: "success", text: "破甲已切换（本会话）。状态以状态条为准。" };
+        return { kind: "error", text: "用法：/armor off 关闭，/armor on 开启；裸 /armor 切换" };
+      },
+    });
+  });
 
   // 实时状态：注册会话投影（客户端 useProjection("armor") 读取，goal 条同款机制）
   const projections = ctx.get("sessionProjections");
@@ -140,8 +205,16 @@ export function apply(ctx) {
         key: "armor",
         stateVersion: 1,
         schema: { parse: (value) => value },
-        view: (state) => state,
-        init: () => ({ running: false, verdict: null, words: [] }),
+        wire: {
+          viewSchema: { parse: (value) => value },
+          view: (state) => ({
+            enabled: state.enabled,
+            running: state.running,
+            verdict: state.verdict,
+            words: state.words
+          }),
+        },
+        init: () => ({ enabled: true, pending: null, running: false, verdict: null, words: [] }),
         apply: armorProjectionApply,
       }),
       "infinite-gen-2: armor projection",

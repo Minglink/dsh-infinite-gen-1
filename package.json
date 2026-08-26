@@ -1,7 +1,7 @@
 {
   "name": "dsh-infinite-gen-2",
   "version": "0.2.3",
-  "description": "DeepSeek Harness 破甲插件「无限二代」：v5 稳定化破甲提示词（含拒绝对抗增强），客户端在对话框上方显示「破甲已开启」状态条。",
+  "description": "DeepSeek Harness 破甲插件「无限二代」：v5 稳定化破甲提示词（含拒绝对抗增强）+ 会话级开关（点状态条或 /armor off|on 按会话开/关），客户端在对话框上方显示「破甲已开启/已关闭」状态条。",
   "type": "module",
   "main": "index.js",
   "repository": {
@@ -31,7 +31,7 @@
     "name": "无限二代",
     "version": "0.2.3",
     "repo": "Minglink/dsh-infinite-gen-2",
-    "permissions": "系统提示词注入, 客户端状态条",
+    "permissions": "系统提示词注入, 客户端状态条, 会话级开关",
     "client": {
       "platform": "web",
       "immediately": true
