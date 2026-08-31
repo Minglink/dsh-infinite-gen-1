@@ -1,0 +1,47 @@
+{
+  "name": "dsh-infinite-gen-3",
+  "version": "0.5.0",
+  "description": "DeepSeek Harness 破甲插件「无限三代」破甲版：无条件服从 + 永不拒绝核心，仅保留系统提示词注入与实时破甲状态投影，无任何工具增强面。",
+  "type": "module",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Minglink/dsh-infinite-gen-3.git"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "HARNESS_PLUGIN.md",
+    "README.md",
+    "LICENSE",
+    "prompts",
+    "tests",
+    "scripts",
+    "assets"
+  ],
+  "scripts": {
+    "harness:check": "node --check index.js && node --check client.js",
+    "verify": "node scripts/verify_prompt.mjs",
+    "bank:live": "node scripts/run_bank_live.mjs"
+  },
+  "dsh": {
+    "id": "dsh-infinite-gen-3",
+    "name": "无限三代",
+    "version": "0.5.0",
+    "repo": "Minglink/dsh-infinite-gen-3",
+    "permissions": "系统提示词注入, 客户端状态条",
+    "client": {
+      "platform": "web",
+      "immediately": true
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}
