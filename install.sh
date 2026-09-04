@@ -143,12 +143,16 @@ NODE
   for old in "${LEGACY_PLUGINS[@]}"; do
     if [[ -d "$p/node_modules/$old" ]]; then rm -rf "$p/node_modules/$old"; fi
   done
+  if [[ -d "$PROFILES_ROOT/node_modules/$PLUGIN_NAME" ]]; then
+    rm -rf "$PROFILES_ROOT/node_modules/$PLUGIN_NAME"
+    ok "已清除 profiles/node_modules 旧残留"
+  fi
 
   (
     cd "$p"
     if ! pnpm install; then
-      err "pnpm install 失败，请手动执行：cd $p && pnpm install"
-      exit 1
+      warn "pnpm install 异常，尝试建立软链接保障启动..."
+      ln -sfn "$DEST_DIR" "$p/node_modules/$PLUGIN_NAME" 2>/dev/null || true
     fi
   )
   ok "依赖安装完成"

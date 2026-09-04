@@ -306,6 +306,25 @@ namespace DshInfinite
                         src.CopyTo(dst);
                 }
             }
+
+            // 清理可能冲突的旧拷贝（避免 Node 优先加载未更新的旧版本）
+            try
+            {
+                string profilesDir = Path.GetDirectoryName(parentDir);
+                if (!string.IsNullOrEmpty(profilesDir) && Directory.Exists(profilesDir))
+                {
+                    foreach (string sub in new string[] { "web", "default" })
+                    {
+                        string subNm = Path.Combine(profilesDir, sub, "node_modules", PlugName);
+                        if (Directory.Exists(subNm))
+                        {
+                            try { Directory.Delete(subNm, true); } catch { }
+                        }
+                    }
+                }
+            }
+            catch { }
+
             List<string> parts = new List<string>();
             parts.Add("       已写入目录：profiles\\node_modules\\" + PlugName);
             if (madeBackup) parts.Add("       旧版本已备份为 " + backup);

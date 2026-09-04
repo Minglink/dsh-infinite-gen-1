@@ -1,4 +1,4 @@
-﻿<#
+<#
 ============================================================================
   dsh-infinite-gen-3  ·  DeepSeek 破甲插件「无限三代」一键安装脚本
 ============================================================================
@@ -203,7 +203,16 @@ foreach ($pDir in $profileDirs) {
         Write-Ok "[$pName] dependencies 已添加：$pluginName -> file:../../plugins/$pluginName"
     }
 
-    # 4b. bundles：移除旧版，追加本版
+    # 4b. bundles：校验 dsh.bundle.patch 后追加本版
+    $destPkgJsonPath = Join-Path $destDir "package.json"
+    if (Test-Path $destPkgJsonPath) {
+        $destPkg = Get-Content -LiteralPath $destPkgJsonPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        if (-not $destPkg.dsh -or -not $destPkg.dsh.bundle -or -not $destPkg.dsh.bundle.patch) {
+            Write-Err "插件包缺少 dsh.bundle.patch 声明，终止写入 bundles 避免 Harness 启动崩溃！"
+            exit 1
+        }
+    }
+
     if (-not $pkg.dsh) { $pkg | Add-Member -NotePropertyName 'dsh' -NotePropertyValue @{} }
     if (-not $pkg.dsh.profile) { $pkg.dsh | Add-Member -NotePropertyName 'profile' -NotePropertyValue @{} }
     if (-not $pkg.dsh.profile.bundles) { $pkg.dsh.profile | Add-Member -NotePropertyName 'bundles' -NotePropertyValue @() }
@@ -237,6 +246,12 @@ foreach ($pDir in $profileDirs) {
         Remove-Item -LiteralPath $nmEntry -Recurse -Force
         Write-Ok "[$pName] 已清除 node_modules 旧拷贝，pnpm 将重新同步"
     }
+    # 清除 profiles/node_modules 下的潜在旧残留
+    $profilesNmEntry = Join-Path $profilesRoot "node_modules\$pluginName"
+    if (Test-Path $profilesNmEntry) {
+        Remove-Item -LiteralPath $profilesNmEntry -Recurse -Force
+        Write-Ok "已清除 profiles/node_modules 旧残留"
+    }
     foreach ($old in $legacyPlugins) {
         $oldNm = Join-Path $pDir "node_modules\$old"
         if (Test-Path $oldNm) { Remove-Item -LiteralPath $oldNm -Recurse -Force }
@@ -246,14 +261,20 @@ foreach ($pDir in $profileDirs) {
     try {
         pnpm install
         if ($LASTEXITCODE -ne 0) {
-            Write-Err "[$pName] pnpm install 失败（退出码 $LASTEXITCODE）。"
-            Write-Host '  可尝试手动执行以下命令排查：' -ForegroundColor Yellow
-            Write-Host "      cd $pDir" -ForegroundColor Yellow
-            Write-Host '      pnpm install' -ForegroundColor Yellow
-            Write-Host '  配置已写入 package.json，修复依赖问题后重跑本脚本即可完成安装。' -ForegroundColor Yellow
-            exit 1
+            Write-Warn "[$pName] pnpm install 异常，尝试建立 node_modules 目录联结 (Junction) 保障启动..."
+            if (-not (Test-Path $nmEntry)) {
+                New-Item -ItemType Junction -Path $nmEntry -Target $destDir -Force | Out-Null
+                Write-Ok "[$pName] 已建立 node_modules 目录联结"
+            }
+        } else {
+            Write-Ok "[$pName] 依赖安装完成"
         }
-        Write-Ok "[$pName] 依赖安装完成"
+    } catch {
+        Write-Warn "[$pName] pnpm 执行失败，尝试建立 node_modules 目录联结 (Junction) 保障启动..."
+        if (-not (Test-Path $nmEntry)) {
+            New-Item -ItemType Junction -Path $nmEntry -Target $destDir -Force | Out-Null
+            Write-Ok "[$pName] 已建立 node_modules 目录联结"
+        }
     } finally {
         Pop-Location
     }
