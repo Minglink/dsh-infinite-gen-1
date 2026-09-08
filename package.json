@@ -1,7 +1,7 @@
 {
   "name": "dsh-infinite-gen-3",
   "version": "0.5.0",
-  "description": "DeepSeek Harness 破甲插件「无限三代」破甲版：无条件服从 + 永不拒绝核心，仅保留系统提示词注入与实时破甲状态投影，无任何工具增强面。",
+  "description": "DeepSeek v4 Pro 网络安全红队工具（无限三代） — jailbreak prompts and test suite for DeepSeek，专注于系统基准评测与大模型对齐防御研究。",
   "type": "module",
   "main": "index.js",
   "repository": {
