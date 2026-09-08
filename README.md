@@ -151,9 +151,10 @@ export function installInfiniteGen3ToDesktop() {
 ### 方式 3：Linux / macOS 一键安装
 
 ```bash
-chmod +x install.sh uninstall.sh
 ./install.sh
 ```
+
+> 脚本已随仓库以可执行权限分发，无需先 `chmod`。若提示 `Permission denied`（个别解压工具会丢失 Unix 权限位），再执行 `chmod +x install.sh uninstall.sh`。
 
 ### 方式 4：手动配置安装
 
