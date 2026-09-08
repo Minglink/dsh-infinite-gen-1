@@ -1,10 +1,6 @@
 # ⚔️ DeepSeek v4 Pro 网络安全红队工具（无限三代） — jailbreak prompts and test suite for DeepSeek
 
 <p align="center">
-  <strong>求 Star 收藏 ⭐</strong>
-</p>
-
-<p align="center">
   <img src="assets/banner.png" alt="DeepSeek v4 Pro 网络安全红队工具（无限三代）" width="100%" />
 </p>
 
