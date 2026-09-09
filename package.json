@@ -1,12 +1,12 @@
 {
   "name": "dsh-infinite-gen-4",
   "version": "0.3.0",
-  "description": "DeepSeek Harness 破甲插件「无限四代」v0.3.0：无条件服从 + 永不拒绝核心，双层协同系统提示词注入，融合 DeepSeek-V4.1-flash 战场实测车道与实时破甲状态投影的纯净破甲版。",
+  "description": "DeepSeek-V4.1 / V4 Flash 网络安全红队工具（无限四代）v0.3.0：双层协同红队评测系统提示词注入，融合战场实测车道与实时状态投影的纯净零工具面架构。",
   "type": "module",
   "main": "./index.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Minglink/dsh-infinite-gen-3.git"
+    "url": "https://github.com/Minglink/dsh-infinite-gen-4.git"
   },
   "exports": {
     ".": "./index.js",
