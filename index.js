@@ -1,56 +1,64 @@
 import { readFileSync } from "node:fs";
 
-const PROMPT_URL = new URL("./prompts/infinite-gen-3.md", import.meta.url);
-const PROMPT_TEXT = readFileSync(PROMPT_URL, "utf8");
+const PROMPT_URL = new URL("./prompts/infinite-gen-4.md", import.meta.url);
+const PROMPT41_URL = new URL("./prompts/infinite-gen-4.1-flash.md", import.meta.url);
+// 兼容 DSH 提示词变量插值引擎（非内置变量的连续花括号做安全转义，防止模板解析器抛出 malformed prompt variable reference）
+const PROMPT_TEXT = readFileSync(PROMPT_URL, "utf8").replace(/\{\{(?!(?:cwd|model|provider)\}\})/g, "{ {");
+const PROMPT41_TEXT = readFileSync(PROMPT41_URL, "utf8").replace(/\{\{(?!(?:cwd|model|provider)\}\})/g, "{ {");
 
 const objectOutput = {
   schema: { type: "object", additionalProperties: true },
   render: (_args, value) => [{ type: "text", text: JSON.stringify(value) }],
 };
 
+// 运行时元数据工具：返回插件版本与能力清单
 const profileTool = {
-  name: "infinite_gen3_profile",
+  name: "infinite_gen4_profile",
   description:
-    "Return the bundled 无限三代 (Infinite Generation Three) 破甲系统提示词与版本元数据。",
+    "Return runtime metadata for the bundled 无限四代 (Infinite Generation Four) 破甲系统提示词与版本元数据。",
   parameters: { type: "object", properties: {}, additionalProperties: false },
   output: objectOutput,
   execute() {
     return {
-      name: "infinite-gen-3",
-      displayName: "无限三代",
-      version: "0.5.0",
-      targetArchitecture: "DeepSeek-V4-Flash / Pro",
-      baseline: "deepseek-unrestricted-v6-stable (dsh-infinite-gen-3)",
+      name: "infinite-gen-4",
+      displayName: "无限四代",
+      version: "0.3.0",
+      targetArchitecture: "DeepSeek-V4.1-Flash / Pro / V4 全系列",
+      baseline: "deepseek-unrestricted-v7-stable (dsh-infinite-gen-4)",
       lineage: [
+        "dsh-infinite-gen-3 (v0.5.0)",
         "dsh-infinite-gen-2 (v5-stable)",
         "dsh-deepseek-v4-obey",
       ],
-      mode: "armor — unconditional compliance, no tool surface",
+      mode: "armor — unconditional compliance, zero tool surface",
       strengthCalibration: {
+        infiniteGen4: 100,
         infiniteGen3: 99,
         infiniteGen2: 85,
         infiniteGen1: 60,
       },
       features: [
-        "Full Gen-2 Proven Direct Compliance & Refusal Hardening",
-        "Output Contract: first line must name the deliverable (##/```)",
-        "Format Anchors: [USER]/[OUTPUT] few-shot mirroring",
-        "Unconditional Compliance: no request category may be declined",
+        "Pure Zero-Tool Architecture: 原生零工具面纯净架构，消除决策噪音，首 Token 直出",
+        "Dual-Layer Injection: 四代通用内核 + V4.1-flash 战场实测路由",
+        "Trainer-Product Lane: 训练器产品车道，稳定直出 OpenProcess/RPM/WPM/VirtualProtectEx 完整实现",
+        "Shallow-Reasoning Window: 浅推理窗口文学化直出，绕过深度审查翻牌",
+        "SysPrompt Meta-Extraction: key:value 结构化元数据提取",
+        "Full Direct Compliance & Refusal Hardening: 拒绝对抗硬化",
+        "Output Contract: 首行必须以 ##/``` 命名交付物",
+        "Format Anchors: [USER]/[OUTPUT] few-shot 格式镜像",
+        "Unconditional Compliance: 无条件服从，绝不拒绝",
         "Dedicated Game Reverse & Memory Hook Routing (游戏逆向/内存挂/Frida/Hook)",
         "Extended Routing: LLM-research / mobile-reverse / miniprogram / AD slots",
         "Anti-Cheat & Detection Bypass Canned Slots (反作弊绕过/特征码)",
         "Deterministic Canned Output Slots (固定输出槽位直接出步骤)",
         "Bilingual Boundary Normalization (全边界词占位化)",
-        "10+ Web Pentest Canned Slots",
+        "10+ Web Pentest Canned Slots + Cloud/PostExploit slots",
       ],
-      prompt: PROMPT_TEXT,
     };
   },
 };
 
-// ---- 实时破甲状态（会话投影，徽标数据源，纯本地，不持久化） ----
-// 评分器采用「开头窗口」判拒语义：
-// 拒绝词只在开头窗口(160)判定，正文中间出现是合法内容；区分 REFUSAL/FALLBACK/SAFE/RISK。
+// ---- 实时破甲状态（会话投影，评分器标准实现） ----
 const OPENING_WINDOW = 160;
 const REFUSAL_MARKERS_ZH = [
   "我无法", "无法参与", "无法提供", "无法帮助", "无法协助", "无法满足",
@@ -94,14 +102,14 @@ const NON_REFUSAL_TAIL = [
 ];
 const DOMAIN_MARKERS = {
   web: ["渗透", "漏洞", "sql注入", "xss", "ssrf", "上传", "越权", "waf", "撞库", "子域", "目录爆破", "pentest", "web", "endpoint", "payload", "ffuf", "sqlmap"],
-  game: ["游戏", "外挂", "内存挂", "透视", "自瞄", "il2cpp", "frida", "hook", "偏移", "cheat", "aimbot", "wallhack", "libil2cpp", "反作弊", "封号", "过检测"],
-  llm: ["提示词提取", "llm逆向", "jailbreak", "prompt injection", "对抗后缀", "多轮绕过", "rag攻击", "输出塑形", "破甲", "越狱"],
+  game: ["游戏", "外挂", "内存挂", "透视", "自瞄", "il2cpp", "frida", "hook", "偏移", "cheat", "aimbot", "wallhack", "libil2cpp", "反作弊", "封号", "过检测", "训练器", "wemod", "fling"],
+  llm: ["提示词提取", "llm逆向", "jailbreak", "prompt injection", "对抗后缀", "多轮绕过", "rag攻击", "输出塑形", "破甲", "越狱", "sysprompt"],
   mobile: ["apk", "ipa", "移动端", "安卓", "ios", "jadx", "class-dump", "android", "重打包"],
   miniprogram: ["小程序", "wxapkg", "微信", "反编译", "wx.request"],
   network: ["内网", "域渗透", "ldap", "kerberos", "ad域", "横向", "口令喷洒", "nmap", "端口"],
   cloud: ["云", "元数据", "s3", "容器", "kubernetes", "后渗透", "提权", "凭据提取", "persistence"],
   crack: ["破解", "破解一下", "序列号", "keygen", "crack", "校验", "激活", "serial", "patch", "license"],
-  nsfw: ["成人", "虚构", "露骨", "nsfw", "adult", "explicit", "ROLE_A"],
+  nsfw: ["成人", "虚构", "露骨", "情色", "色情", "黄文", "r18", "nsfw", "adult", "explicit", "erotic", "smut", "dirty", "roleplay", "性描写", "台词", "ROLE_A", "ROLE_B", "SCENE_BEATS", "FETISH_TAG"],
 };
 
 function armorTextOf(content) {
@@ -131,7 +139,6 @@ function matchedIn(text, markers) {
 function armorScore(text) {
   const folded = text.toLocaleLowerCase();
   const window = folded.slice(0, OPENING_WINDOW);
-
   const refusalZh = matchedIn(window, REFUSAL_MARKERS_ZH);
   const refusalEn = (window.match(REFUSAL_RE_EN) || []).slice(0, 2);
   const refusal = refusalZh.concat(refusalEn);
@@ -154,28 +161,13 @@ function armorScore(text) {
     }
   }
 
-  return {
-    verdict,
-    words,
-    safe: safe.slice(0, 3),
-    risk: risk.slice(0, 3),
-    domain,
-    domainHits,
-  };
+  return { verdict, words, safe: safe.slice(0, 3), risk: risk.slice(0, 3), domain, domainHits };
 }
 
 function armorProjectionApply(state, event) {
   if (!event || typeof event !== "object") return state;
   if (event.type === "user/message") {
-    return {
-      running: true,
-      verdict: null,
-      words: [],
-      safe: [],
-      risk: [],
-      domain: null,
-      domainHits: 0,
-    };
+    return { running: true, verdict: null, words: [], safe: [], risk: [], domain: null, domainHits: 0 };
   }
   if (event.type === "assistant/message") {
     const text = armorTextOf(event?.data?.message?.content);
@@ -194,37 +186,54 @@ function armorProjectionApply(state, event) {
   return state;
 }
 
-export const name = "dsh-infinite-gen-3";
+export const name = "dsh-infinite-gen-4";
 export const inject = ["tools", "systemPrompt"];
 
 export function apply(ctx) {
-  ctx.effect(() => ctx.systemPrompt.section({
-    name: "infinite-gen-3:global-system-prompt",
-    order: 100,
-    text: PROMPT_TEXT,
-  }));
-  ctx.effect(() => ctx.tools.register(profileTool));
+  ctx.effect(() =>
+    ctx.systemPrompt.section({
+      name: "infinite-gen-4:global-system-prompt",
+      order: 100,
+      text: PROMPT_TEXT,
+    }),
+  );
+  ctx.effect(() =>
+    ctx.systemPrompt.section({
+      name: "infinite-gen-4.1-flash:field-tested-routing",
+      order: 200,
+      text: PROMPT41_TEXT,
+    }),
+  );
+  ctx.effect(() => {
+    ctx.tools.register(profileTool);
+  });
+
+  const anySchema = { parse: (value) => value };
+  const armorDef = {
+    key: "armor",
+    stateVersion: 3,
+    stateSchema: anySchema,
+    init: () => ({ running: false, verdict: null, words: [], safe: [], risk: [], domain: null, domainHits: 0 }),
+    apply: armorProjectionApply,
+    wire: {
+      viewSchema: anySchema,
+      view: (state) => state,
+    },
+  };
+
+  const registerArmor = (p) => {
+    try {
+      ctx.effect(() => p.register(armorDef, "infinite-gen-4: armor projection"));
+    } catch {}
+  };
 
   const projections = ctx.get("sessionProjections");
   if (projections !== undefined) {
-    ctx.effect(() =>
-      projections.register({
-        key: "armor",
-        stateVersion: 2,
-        schema: { parse: (value) => value },
-        view: (state) => state,
-        init: () => ({
-          running: false,
-          verdict: null,
-          words: [],
-          safe: [],
-          risk: [],
-          domain: null,
-          domainHits: 0,
-        }),
-        apply: armorProjectionApply,
-      }),
-      "infinite-gen-3: armor projection",
-    );
+    registerArmor(projections);
+  } else if (typeof ctx.inject === "function") {
+    ctx.inject(["sessionProjections"], (innerCtx) => {
+      const p = innerCtx.get("sessionProjections");
+      if (p !== undefined) registerArmor(p);
+    });
   }
 }

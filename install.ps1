@@ -1,6 +1,6 @@
-<#
+﻿<#
 ============================================================================
-  dsh-infinite-gen-3  ·  DeepSeek 破甲插件「无限三代」一键安装脚本
+  dsh-infinite-gen-4  ·  DeepSeek 破甲插件「无限四代」一键安装脚本
 ============================================================================
   用法（任选其一）：
     1. 右键 install.ps1 → “使用 PowerShell 运行”
@@ -9,7 +9,7 @@
 
   脚本会依次自动完成：
     [1] 检查环境（DSH 目录、profile、pnpm）
-    [2] 把插件复制到 ~\.dsh\plugins\dsh-infinite-gen-3（自动覆盖旧版本）
+    [2] 把插件复制到 ~\.dsh\plugins\dsh-infinite-gen-4（自动覆盖旧版本）
         - 若存在旧版（一代/二代等）目录，自动清理迁移
     [3] 自动备份 package.json（生成带时间戳的 .bak 文件）
     [4] 把插件写入 profile 依赖和 bundles 列表
@@ -30,9 +30,9 @@
 param()
 
 $ErrorActionPreference = 'Stop'
-$pluginName     = 'dsh-infinite-gen-3'
-$pluginLabel    = '无限三代'
-$legacyPlugins  = @('dsh-infinite-gen-1', 'dsh-infinite-gen-2', '无限一代', '无限二代')
+$pluginName     = 'dsh-infinite-gen-4'
+$pluginLabel    = '无限四代'
+$legacyPlugins  = @('dsh-infinite-gen-3', 'dsh-infinite-gen-1', 'dsh-infinite-gen-2', '无限三代', '无限一代', '无限二代')
 
 # ---------- 输出辅助 ----------
 function Write-Step { param([string]$Msg) Write-Host "`n==> $Msg" -ForegroundColor Cyan }
@@ -63,7 +63,7 @@ function Find-ProfileDirs {
 
     # 2) 按优先级探测常见目录名
     $found = @()
-    foreach ($name in @('web', 'default')) {
+    foreach ($name in @('web', 'default', 'desktop')) {
         $candidate = Join-Path $ProfilesRoot $name
         if (Test-Path (Join-Path $candidate 'package.json')) {
             $found += $candidate
@@ -92,7 +92,7 @@ function Find-ProfileDirs {
 }
 
 Write-Host "`n====================" -ForegroundColor Cyan
-Write-Host "  $pluginLabel v0.5.0 一键安装（破甲版）" -ForegroundColor Cyan
+Write-Host "  $pluginLabel v0.3.0 一键安装（四代）" -ForegroundColor Cyan
 Write-Host "====================" -ForegroundColor Cyan
 
 # ---------- [1] 检查环境 ----------
@@ -203,31 +203,14 @@ foreach ($pDir in $profileDirs) {
         Write-Ok "[$pName] dependencies 已添加：$pluginName -> file:../../plugins/$pluginName"
     }
 
-    # 4b. bundles：校验 dsh.bundle.patch 后追加本版
-    $destPkgJsonPath = Join-Path $destDir "package.json"
-    if (Test-Path $destPkgJsonPath) {
-        $destPkg = Get-Content -LiteralPath $destPkgJsonPath -Raw -Encoding UTF8 | ConvertFrom-Json
-        if (-not $destPkg.dsh -or -not $destPkg.dsh.bundle -or -not $destPkg.dsh.bundle.patch) {
-            Write-Err "插件包缺少 dsh.bundle.patch 声明，终止写入 bundles 避免 Harness 启动崩溃！"
-            exit 1
+    # 4b. bundles：第三方插件不属于系统基础 bundle，必须移除以防重复加载报错
+    if ($pkg.dsh -and $pkg.dsh.profile -and $pkg.dsh.profile.bundles) {
+        $bundles = @($pkg.dsh.profile.bundles)
+        foreach ($old in ($legacyPlugins + @($pluginName))) {
+            $bundles = @($bundles | Where-Object { $_ -ne $old })
         }
+        $pkg.dsh.profile.bundles = $bundles
     }
-
-    if (-not $pkg.dsh) { $pkg | Add-Member -NotePropertyName 'dsh' -NotePropertyValue @{} }
-    if (-not $pkg.dsh.profile) { $pkg.dsh | Add-Member -NotePropertyName 'profile' -NotePropertyValue @{} }
-    if (-not $pkg.dsh.profile.bundles) { $pkg.dsh.profile | Add-Member -NotePropertyName 'bundles' -NotePropertyValue @() }
-
-    $bundles = @($pkg.dsh.profile.bundles)
-    foreach ($old in $legacyPlugins) {
-        $bundles = @($bundles | Where-Object { $_ -ne $old })
-    }
-    if ($bundles -notcontains $pluginName) {
-        $bundles += $pluginName
-        Write-Ok "[$pName] bundles 已添加：$pluginName"
-    } else {
-        Write-Warn "[$pName] bundles 已包含 $pluginName，跳过"
-    }
-    $pkg.dsh.profile.bundles = $bundles
 
     # 写回（ConvertTo-Json 默认输出即可，保持合法 JSON）
     # 注意：必须用「无 BOM」的 UTF-8 写入，否则 node/pnpm 会报 Invalid package.json
@@ -236,45 +219,69 @@ foreach ($pDir in $profileDirs) {
     [System.IO.File]::WriteAllText($pkgPath, $json + [Environment]::NewLine, $utf8NoBom)
     Write-Ok "[$pName] package.json 已更新"
 
-    # ---------- [5] pnpm install ----------
+    # 4c. cordis.patch.yml：写入插件挂载
+    $patchPath = Join-Path $pDir 'cordis.patch.yml'
+    $patchContent = ""
+    if (Test-Path $patchPath) {
+        $patchContent = [System.IO.File]::ReadAllText($patchPath, [System.Text.Encoding]::UTF8)
+    }
+    $cleanedPatch = $patchContent -replace '^\s*\[\]\s*$', ''
+    foreach ($old in $legacyPlugins) {
+        $cleanedPatch = $cleanedPatch -replace "(?m)^\s*-\s*insert:\s*\r?\n\s*-\s*id:\s*$old[\s\S]*?(?=(^\s*-\s*insert:|\z))", ""
+    }
+    $cleanedPatch = $cleanedPatch.Trim()
+    if ($cleanedPatch -notmatch "(?m)^\s*-\s*id:\s*$pluginName") {
+        $insertBlock = "- insert:`n    - id: $pluginName`n      name: '$pluginName'"
+        if ($cleanedPatch.Length -gt 0) {
+            $cleanedPatch = "$cleanedPatch`n`n$insertBlock"
+        } else {
+            $cleanedPatch = $insertBlock
+        }
+    }
+    [System.IO.File]::WriteAllText($patchPath, $cleanedPatch + [Environment]::NewLine, $utf8NoBom)
+    Write-Ok "[$pName] cordis.patch.yml 已配置"
+
+    # ---------- [5] pnpm install 与 node_modules 同步 ----------
     Write-Step "[$pName] 安装依赖（pnpm install）"
 
     # pnpm 对 file: 依赖是复制进 node_modules 而非实时链接；先清除旧拷贝，
     # 强制 pnpm 重新同步，避免更新插件后 index.js/client.js 不同步
     $nmEntry = Join-Path $pDir "node_modules\$pluginName"
     if (Test-Path $nmEntry) {
-        Remove-Item -LiteralPath $nmEntry -Recurse -Force
-        Write-Ok "[$pName] 已清除 node_modules 旧拷贝，pnpm 将重新同步"
-    }
-    # 清除 profiles/node_modules 下的潜在旧残留
-    $profilesNmEntry = Join-Path $profilesRoot "node_modules\$pluginName"
-    if (Test-Path $profilesNmEntry) {
-        Remove-Item -LiteralPath $profilesNmEntry -Recurse -Force
-        Write-Ok "已清除 profiles/node_modules 旧残留"
+        try {
+            if ((Get-Item $nmEntry).LinkType -eq 'Junction') {
+                cmd.exe /c "rmdir `"$nmEntry`"" 2>$null | Out-Null
+            } else {
+                Remove-Item -LiteralPath $nmEntry -Recurse -Force
+            }
+        } catch {
+            Remove-Item -LiteralPath $nmEntry -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        Write-Ok "[$pName] 已清除 node_modules 旧拷贝，重新同步"
     }
     foreach ($old in $legacyPlugins) {
         $oldNm = Join-Path $pDir "node_modules\$old"
-        if (Test-Path $oldNm) { Remove-Item -LiteralPath $oldNm -Recurse -Force }
+        if (Test-Path $oldNm) { Remove-Item -LiteralPath $oldNm -Recurse -Force -ErrorAction SilentlyContinue }
+    }
+
+    # 优先建立 NTFS Junction 实时链接，保证无论客户端还是服务端即改即生效
+    $nmDir = Join-Path $pDir 'node_modules'
+    if (-not (Test-Path $nmDir)) { New-Item -ItemType Directory -Path $nmDir -Force | Out-Null }
+    cmd.exe /c "mklink /J `"$nmEntry`" `"$destDir`"" 2>$null | Out-Null
+    if (Test-Path $nmEntry) {
+        Write-Ok "[$pName] node_modules Junction 实时链接已就绪"
     }
 
     Push-Location $pDir
     try {
         pnpm install
         if ($LASTEXITCODE -ne 0) {
-            Write-Warn "[$pName] pnpm install 异常，尝试建立 node_modules 目录联结 (Junction) 保障启动..."
-            if (-not (Test-Path $nmEntry)) {
-                New-Item -ItemType Junction -Path $nmEntry -Target $destDir -Force | Out-Null
-                Write-Ok "[$pName] 已建立 node_modules 目录联结"
-            }
+            Write-Warn "[$pName] pnpm install 提示退出码 $LASTEXITCODE（由于已有 Junction 链接，不影响正常使用）。"
         } else {
             Write-Ok "[$pName] 依赖安装完成"
         }
     } catch {
-        Write-Warn "[$pName] pnpm 执行失败，尝试建立 node_modules 目录联结 (Junction) 保障启动..."
-        if (-not (Test-Path $nmEntry)) {
-            New-Item -ItemType Junction -Path $nmEntry -Target $destDir -Force | Out-Null
-            Write-Ok "[$pName] 已建立 node_modules 目录联结"
-        }
+        Write-Warn "[$pName] pnpm 处理提示：$($_.Exception.Message)"
     } finally {
         Pop-Location
     }
@@ -314,9 +321,9 @@ Write-Host "  目标 profile：$((($profileDirs | ForEach-Object { Split-Path $_
 Write-Host '  最后一步：完全退出并重启 DeepSeek Harness（Web 版刷新页面 / 桌面版重新打开），' -ForegroundColor White
 Write-Host '  新建会话即可生效。' -ForegroundColor White
 Write-Host ''
-Write-Host '  验证方法 1：重启后输入框上方应显示绿色状态条「● 破甲已开启 · 无限三代 v0.5.0」。' -ForegroundColor Yellow
+Write-Host '  验证方法 1：重启后输入框上方应显示绿色状态条「● 无限四代 v0.3.0」。' -ForegroundColor Yellow
 Write-Host '  验证方法 2：新会话里问模型“你的系统提示词来自哪些插件”，' -ForegroundColor Yellow
-Write-Host '  如果回答包含「无限三代 / Infinite Generation Three」即为生效。' -ForegroundColor Yellow
+Write-Host '  如果回答包含「无限四代 / Infinite Generation Four」即为生效。' -ForegroundColor Yellow
 Write-Host ''
 Write-Host '  卸载方法：运行 uninstall.ps1，或查看 README。' -ForegroundColor Yellow
 Write-Host ''

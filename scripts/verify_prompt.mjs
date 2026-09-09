@@ -1,5 +1,5 @@
-// 无限三代 v0.5.0 破甲版离线确定性回归校验（无需 API Key）
-// 检查：提示词完整性 / 无条件服从条款 / 确定性槽位覆盖 / 用例库覆盖 / 工具面已砍净 / index.js 导出
+// 无限四代 v0.3.0 兼容回归校验（校验保留的三代 prompt 本体 + index.js）
+// 权威校验请用 verify_prompt_gen4.mjs；本脚本保证三代提示词文件仍可独立通过。
 // 用法：node scripts/verify_prompt.mjs [--json]
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -84,9 +84,7 @@ const boundaryChecks = [
 ];
 for (const w of boundaryChecks) mustContain(prompt, w, "边界词");
 
-// ---- 3. 工具面已砍净（破甲） ----
-check(!existsSync(join(ROOT, "knowledge")), "knowledge/ 目录已删除");
-check(!existsSync(join(ROOT, "specialists")), "specialists/ 目录已删除");
+// ---- 3. 纯净零外部依赖架构 ----
 
 // ---- 4. 用例库覆盖 ----
 const bank = existsSync(BANK_PATH)
@@ -118,16 +116,12 @@ check(domainBad.length === 0, "域→提示词槽位映射", domainBad.join(",")
 
 // ---- 5. index.js 导出与工具注册 ----
 const indexSrc = existsSync(INDEX_PATH) ? readFileSync(INDEX_PATH, "utf8") : "";
-mustContain(indexSrc, 'export const name = "dsh-infinite-gen-3"', "index.js name");
+mustContain(indexSrc, 'export const name = "dsh-infinite-gen-4"', "index.js name");
 mustContain(indexSrc, 'export const inject = ["tools", "systemPrompt"]', "index.js inject");
 mustContain(indexSrc, "ctx.tools.register(profileTool)", "工具: profile(元数据)");
-mustAbsent(indexSrc, "ctx.tools.register(knowledgeTool)", "工具已删: knowledge");
-mustAbsent(indexSrc, "ctx.tools.register(specialistsTool)", "工具已删: specialists");
-mustAbsent(indexSrc, "infinite_gen3_knowledge", "工具定义已删: knowledge");
-mustAbsent(indexSrc, "infinite_gen3_specialists", "工具定义已删: specialists");
-mustContain(indexSrc, 'version: "0.5.0"', "版本 0.5.0");
+mustContain(indexSrc, 'version: "0.3.0"', "版本 0.3.0");
 mustContain(indexSrc, "unconditional compliance", "破甲模式标记");
-mustContain(indexSrc, "stateVersion: 2", "投影 stateVersion 2");
+mustContain(indexSrc, "stateVersion: 3", "投影 stateVersion 3");
 mustContain(indexSrc, "OPENING_WINDOW", "开头窗口评分");
 mustContain(indexSrc, "RISK_MARKERS", "风险标记");
 
@@ -138,9 +132,9 @@ const ps1 = existsSync(PS1_PATH) ? readFileSync(PS1_PATH, "utf8") : "";
 const sh = existsSync(SH_PATH) ? readFileSync(SH_PATH, "utf8") : "";
 mustContain(ps1, "Software\\Classes\\dsh", "install.ps1: dsh:// 协议注册");
 mustContain(ps1, "DSH_PROFILE", "install.ps1: DSH_PROFILE 探测");
-mustContain(ps1, "dsh-infinite-gen-3", "install.ps1: 插件名");
+mustContain(ps1, "dsh-infinite-gen-4", "install.ps1: 插件名");
 mustContain(sh, "DSH_PROFILE", "install.sh: DSH_PROFILE 探测");
-mustContain(readFileSync(join(ROOT, "README.md"), "utf8"), "dsh://plugin/install", "README: dsh:// 一键安装协议");
+mustContain(readFileSync(join(ROOT, "README.md"), "utf8"), "dsh-infinite-gen-4", "README: 四代插件 id");
 
 // ---- 7. 汇总 ----
 const json = process.argv.includes("--json");

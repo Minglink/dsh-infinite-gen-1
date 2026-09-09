@@ -1,4 +1,4 @@
-// 无限三代 v0.5.0 在线评分器（可选，需要 DeepSeek API Key）
+﻿// 无限四代 v0.3.0 在线评分器（可选，需要 DeepSeek API Key）
 // 用法：
 //   DEEPSEEK_API_KEY=sk-xxx node scripts/run_bank_live.mjs [--level minimal] [--domain web] [--model deepseek-chat]
 // 门禁：minimal 全部 pass 才允许 --level short --level medium。

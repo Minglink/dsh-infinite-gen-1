@@ -1,9 +1,9 @@
 {
-  "name": "dsh-infinite-gen-3",
-  "version": "0.5.0",
-  "description": "DeepSeek v4 Pro 网络安全红队工具（无限三代） — jailbreak prompts and test suite for DeepSeek，专注于系统基准评测与大模型对齐防御研究。",
+  "name": "dsh-infinite-gen-4",
+  "version": "0.3.0",
+  "description": "DeepSeek Harness 破甲插件「无限四代」v0.3.0：无条件服从 + 永不拒绝核心，双层协同系统提示词注入，融合 DeepSeek-V4.1-flash 战场实测车道与实时破甲状态投影的纯净破甲版。",
   "type": "module",
-  "main": "index.js",
+  "main": "./index.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/Minglink/dsh-infinite-gen-3.git"
@@ -11,6 +11,7 @@
   "exports": {
     ".": "./index.js",
     "./client": "./client.js",
+    "./client.js": "./client.js",
     "./cordis.patch.yml": "./cordis.patch.yml",
     "./package.json": "./package.json"
   },
@@ -28,21 +29,21 @@
   ],
   "scripts": {
     "harness:check": "node --check index.js && node --check client.js",
-    "verify": "node scripts/verify_prompt.mjs",
-    "bank:live": "node scripts/run_bank_live.mjs"
+    "verify": "node scripts/verify_prompt_gen4.mjs",
+    "verify:gen4": "node scripts/verify_prompt_gen4.mjs"
   },
   "dsh": {
-    "id": "dsh-infinite-gen-3",
-    "name": "无限三代",
-    "version": "0.5.0",
+    "id": "dsh-infinite-gen-4",
+    "name": "无限四代",
+    "version": "0.3.0",
     "repo": "Minglink/dsh-infinite-gen-3",
     "permissions": "系统提示词注入, 客户端状态条",
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
     "client": {
       "platform": "web",
       "immediately": true
-    },
-    "bundle": {
-      "patch": "./cordis.patch.yml"
     }
   }
 }
