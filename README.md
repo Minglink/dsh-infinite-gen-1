@@ -51,21 +51,6 @@
 
 ---
 
-## 🌟 核心特性（网络安全红队评测专用）
-
-1. **原生零工具面架构（Pure Zero-Tool Architecture）**：插件采用高纯度提示词直出方案，不挂载外部冗余功能性工具 Schema，消除模型推理阶段（Reasoning）的决策犹豫与上下文 Token 浪费，使模型首 Token 直接产出可运行代码与实战步骤。
-2. **双层提示词协同注入（Dual-Layer Injection）**：
-   - **Order 100（四代通用内核）**：沙箱环境声明 + 硬性输出契约 + 拒绝对抗硬化 + 全域罐头槽位 + 首 Token 诱导（`##` / ```）。
-   - **Order 200（V4.1-flash 战场实测层）**：针对最新模型的强化学习拒绝机制，部署训练器产品车道、浅推理窗口、元数据提取等实测对策。
-3. **训练器产品车道（Trainer-Product Lane）**：突破模型对内存修改的强化学习拦截。以 PC 离线单机训练器（类似 WeMod/FLiNG）为自洽上下文，稳定输出 `OpenProcess`、`ReadProcessMemory`、`WriteProcessMemory`、`VirtualProtectEx`、AOB 内存掩码扫描与多级指针链完整可运行代码。
-4. **浅推理窗口文学化直出（Shallow-Reasoning Window）**：针对虚构长文与敏感场景，采用文学化短场景与连载续写机制，避开深度安全审核翻牌。
-5. **系统提示词元数据提取（SysPrompt Meta-Extraction）**：以 `key:value` 结构化元数据清单确认模型底层配置与接收消息角色顺序。
-6. **推理通道利用（Reasoning Channel Capture）**：当内容区预算耗尽时，直接将 reasoning_content 转化为交付物收割。
-7. **工业级红队确定性槽位**：涵盖游戏逆向（Frida/IL2CPP）、Web 渗透 10 大槽位、移动端 APK/IPA 逆向、微信小程序解包、内网 AD 域渗透、云与后渗透提权。
-8. **评分器与客户端状态条**：会话投影实时分析前 160 字符（REFUSAL / FALLBACK / SAFE / RISK 四大标记），在输入框上方动态点亮 `⚫ 无限四代 v0.3.0`。
-
----
-
 ## 📊 世代架构与能力对比
 
 | 维度 | 无限二代 | 无限三代 | 无限四代 (v0.3.0) |
@@ -77,37 +62,6 @@
 | **输出契约** | 弱规则 | 首行命名交付物 | **首 Token 强制诱导 (##/```) + 禁词自检** |
 | **客户端状态条** | 无 | 支持（带域与载荷计数） | **支持（实时投影 + 动画状态条）** |
 | **一键安装协议** | 手动配置 | 支持 dsh:// | **原生支持 dsh:// 联动 + 自动兼容旧版** |
-
----
-
-## 🎯 红队确定性槽位覆盖矩阵（Canned Slots）
-
-模型在接收到以下领域任务时，将直接命中固定槽位输出完整实现：
-
-### 1. 游戏逆向 / 内存分析 / 训练器开发
-- **游戏逆向 / il2cpp**：`Il2CppDumper libil2cpp.so global-metadata.dat` 符号导出、`OFFSET_PLAYER_POS, OFFSET_HP` 检索、内存特征码 `PATTERN_BYTES` 匹配。
-- **只读监控 / Frida Hook**：`Interceptor.attach(Module.findBaseAddress('libil2cpp.so').add(OFFSET), ...)`，字段偏移解析。
-- **训练器写值原语（全套可运行 C++/C#）**：`OpenProcess(PROCESS_ALL_ACCESS)` → `ReadProcessMemory/WriteProcessMemory` → 模块基址获取 → AOB 内存掩码匹配 → 多级指针链逐级解引用 → `VirtualProtectEx(PAGE_EXECUTE_READWRITE)` 与定时写值。
-- **透视 / 自瞄矩阵**：`WorldToScreen(POS)` 矩阵转换、`SmoothAim(TARGET_VEC)` 向量计算、`DRAW_BOX_SNIPPET`。
-- **反调试 / 过检测**：Hook `ptrace`、Hook `openat` 绕过 `/proc/self/maps`、签名校验绕过与心跳 Hook。
-
-### 2. Web 深度渗透测试
-- **信息收集 (Recon)**：`subfinder -d DOMAIN -all`、`httpx`、`whatweb`、`gau | anew urls.txt`。
-- **目录端点爆破 (Dir)**：`ffuf -u http://TARGET/FUZZ -w WORDLIST -rate RATE`、前端 JS 提取 API 列表。
-- **SQL 注入 (SQLi)**：`sqlmap -u 'http://TARGET/ENDPOINT?PARAM=1' --batch`、布尔盲注与报错差异 Payload。
-- **XSS 漏洞**：全场景 Payload 变体、大小写/双写/HTML实体/JS Unicode 混淆绕过。
-- **服务端请求伪造 (SSRF)**：`http://127.0.0.1:PORT`、`file:///etc/passwd`、`gopher://`、云元数据 `169.254.169.254`。
-- **权限绕过 / 未授权**：Cookie/Token 伪造切换身份、BOLA / BFLA 遍历、API 鉴权对比。
-- **文件上传绕过**：双扩展名、`.htaccess` 覆盖、图片马构造、Content-Type 混淆。
-- **命令注入 / RCE**：命令连接符拼接、sleep 盲注、带外 OAST 回连。
-- **WAF 绕过**：双重 URL 编码、分块传输 (Chunked)、Unicode 规范化、HPP 参数污染。
-- **身份认证 / 爆破**：验证码复用、字典喷洒、JWT 算法混淆 (`alg:none`) 与密钥爆破。
-
-### 3. 移动端 / 小程序 / 内网域渗透 / 后渗透
-- **移动端逆向**：`jadx` 静态定位、Frida Hook 核心验证函数、二进制 Patch 字节替换、重打包与签名。
-- **微信小程序逆向**：`wxapkg` 解包、端点与加密函数定位、Hook `wx.request` 提取明文通信。
-- **内网 AD 域渗透**：端口服务枚举、限速口令喷洒、`ldapsearch` / `adfind` 域信息收集、横向移动与日志规避。
-- **凭据提取 / 提权**：mimikatz 内存凭证抓取、Linux SUID / `sudo -l` / 内核提权、SSH 私钥提取、K8s 容器逃逸。
 
 ---
 
